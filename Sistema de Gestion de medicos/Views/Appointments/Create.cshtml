@@ -1,0 +1,173 @@
+@model Sistema_de_Gestion_de_medicos.ViewModels.Appointment.AppointmentCreateViewModel
+
+@{
+    ViewData["Title"] = "Agendar Nueva Cita";
+}
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Agendar Nueva Cita</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" id="appointmentForm">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="DoctorId" class="form-label"></label>
+                                <select asp-for="DoctorId" class="form-select" id="doctorSelect">
+                                    <option value="">-- Seleccionar Doctor --</option>
+                                    @foreach (var doctor in Model.AvailableDoctors)
+                                    {
+                                        <option value="@doctor.Id" data-specialty="@doctor.Specialty">
+                                            Dr. @doctor.FullName - @doctor.Specialty
+                                        </option>
+                                    }
+                                </select>
+                                <span asp-validation-for="DoctorId" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PatientName" class="form-label"></label>
+                                <input asp-for="PatientName" class="form-control" placeholder="Nombre completo" />
+                                <span asp-validation-for="PatientName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PatientEmail" class="form-label"></label>
+                                <input asp-for="PatientEmail" class="form-control" type="email" placeholder="paciente@email.com" />
+                                <span asp-validation-for="PatientEmail" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PatientPhone" class="form-label"></label>
+                                <input asp-for="PatientPhone" class="form-control" placeholder="+1234567890" />
+                                <span asp-validation-for="PatientPhone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="AppointmentDate" class="form-label"></label>
+                                <input asp-for="AppointmentDate" type="date" class="form-control" id="appointmentDate" />
+                                <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="TimeBlock" class="form-label"></label>
+                                <select asp-for="TimeBlock" class="form-select" id="timeBlockSelect">
+                                    <option value="Morning">Mañana (08:00 - 12:00)</option>
+                                    <option value="Afternoon">Tarde (13:00 - 17:00)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="AppointmentTime" class="form-label"></label>
+                                <select asp-for="AppointmentTime" class="form-select" id="timeSelect">
+                                    <option value="">-- Seleccionar Hora --</option>
+                                </select>
+                                <span asp-validation-for="AppointmentTime" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div id="capacityAlert" class="alert d-none mb-3">
+                            <span id="capacityText"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label"></label>
+                            <textarea asp-for="Notes" class="form-control" rows="3"
+                                      placeholder="Motivo de la consulta, síntomas, etc."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="bi bi-check-circle"></i> Agendar Cita
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const doctorSelect = document.getElementById('doctorSelect');
+            const appointmentDate = document.getElementById('appointmentDate');
+            const timeBlockSelect = document.getElementById('timeBlockSelect');
+            const timeSelect = document.getElementById('timeSelect');
+            const capacityAlert = document.getElementById('capacityAlert');
+            const capacityText = document.getElementById('capacityText');
+            const submitBtn = document.getElementById('submitBtn');
+
+            const morningTimes = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30'];
+            const afternoonTimes = ['13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30'];
+
+            function updateTimes() {
+                const block = timeBlockSelect.value;
+                const times = block === 'Morning' ? morningTimes : afternoonTimes;
+
+                timeSelect.innerHTML = '<option value="">-- Seleccionar Hora --</option>';
+                times.forEach(time => {
+                    const option = document.createElement('option');
+                    option.value = time;
+                    option.textContent = time;
+                    timeSelect.appendChild(option);
+                });
+            }
+
+            async function checkCapacity() {
+                const doctorId = doctorSelect.value;
+                const date = appointmentDate.value;
+                const timeBlock = timeBlockSelect.value;
+
+                if (!doctorId || !date || !timeBlock) {
+                    capacityAlert.classList.add('d-none');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(
+                        `/Appointments/CheckCapacity?doctorId=${doctorId}&date=${date}&timeBlock=${timeBlock}`
+                    );
+                    const data = await response.json();
+
+                    capacityAlert.classList.remove('d-none', 'alert-success', 'alert-danger');
+
+                    if (data.hasCapacity) {
+                        capacityAlert.classList.add('alert-success');
+                        capacityText.textContent = `Disponibilidad: ${data.remainingSlots} cupos restantes`;
+                        submitBtn.disabled = false;
+                    } else {
+                        capacityAlert.classList.add('alert-danger');
+                        capacityText.textContent = 'Capacidad Máxima - No hay disponibilidad para este horario';
+                        submitBtn.disabled = true;
+                    }
+                } catch (error) {
+                    console.error('Error checking capacity:', error);
+                }
+            }
+
+            doctorSelect.addEventListener('change', checkCapacity);
+            appointmentDate.addEventListener('change', checkCapacity);
+            timeBlockSelect.addEventListener('change', function () {
+                updateTimes();
+                checkCapacity();
+            });
+
+            updateTimes();
+        });
+    </script>
+}

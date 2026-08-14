@@ -1,0 +1,158 @@
+@model Sistema_de_Gestion_de_medicos.ViewModels.Doctor.DoctorCapacityViewModel
+
+@{
+    ViewData["Title"] = "Configurar Capacidad";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="bi bi-speedometer2"></i> Capacidad Diaria - Dr. @Model.DoctorName
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        <strong>Especialidad:</strong> @Model.Specialty
+                    </p>
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (Model.Capacities.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Bloque</th>
+                                        <th class="text-center">Máximo</th>
+                                        <th class="text-center">Agendadas</th>
+                                        <th class="text-center">Disponibles</th>
+                                        <th>Estado</th>
+                                        <th class="text-center">Acción</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var cap in Model.Capacities)
+                                    {
+                                        <tr class="@(cap.IsBlocked ? "table-danger" : cap.HasReachedCapacity ? "table-warning" : "")">
+                                            <td>@cap.DateDisplay</td>
+                                            <td>@cap.TimeBlockDisplay</td>
+                                            <td class="text-center">@cap.MaxDailyAppointments</td>
+                                            <td class="text-center">@cap.CurrentBookedAppointments</td>
+                                            <td class="text-center">
+                                                <strong>@cap.RemainingSlots</strong>
+                                            </td>
+                                            <td>
+                                                @if (cap.IsBlocked)
+                                                {
+                                                    <span class="badge bg-danger">Bloqueado</span>
+                                                }
+                                                else if (cap.HasReachedCapacity)
+                                                {
+                                                    <span class="badge bg-warning text-dark">Capacidad Máxima</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">Disponible</span>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <form asp-action="ToggleBlock" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                                                    <input type="hidden" name="date" value="@cap.SpecificDate.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-@(cap.IsBlocked ? "success" : "danger")"
+                                                            title="@(cap.IsBlocked ? "Desbloquear" : "Bloquear")">
+                                                        <i class="bi bi-@(cap.IsBlocked ? "unlock" : "lock")"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="bi bi-calendar-x display-4 text-muted"></i>
+                            <p class="mt-2 text-muted">No hay capacidad configurada. Use el formulario para configurar.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-gear"></i> Configurar Capacidad</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="ConfigureCapacity" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="DoctorId" />
+
+                        <div class="mb-3">
+                            <label asp-for="StartDate" class="form-label"></label>
+                            <input asp-for="StartDate" type="date" class="form-control" />
+                            <span asp-validation-for="StartDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="EndDate" class="form-label"></label>
+                            <input asp-for="EndDate" type="date" class="form-control" />
+                            <span asp-validation-for="EndDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="MaxDailyAppointments" class="form-label"></label>
+                            <input asp-for="MaxDailyAppointments" type="number" min="1" max="200" class="form-control" />
+                            <span asp-validation-for="MaxDailyAppointments" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TimeBlock" class="form-label"></label>
+                            <select asp-for="TimeBlock" class="form-select">
+                                <option value="Morning">Mañana (08:00 - 12:00)</option>
+                                <option value="Afternoon">Tarde (13:00 - 17:00)</option>
+                                <option value="Full">Día Completo</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-check-circle"></i> Configurar Capacidad
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <a asp-action="Index" class="btn btn-secondary w-100 mt-3">
+                <i class="bi bi-arrow-left"></i> Volver a la Lista
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

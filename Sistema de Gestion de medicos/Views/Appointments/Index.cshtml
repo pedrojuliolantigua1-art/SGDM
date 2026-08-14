@@ -1,0 +1,139 @@
+@model Sistema_de_Gestion_de_medicos.ViewModels.Appointment.AppointmentListViewModel
+
+@{
+    ViewData["Title"] = "Citas del Día";
+}
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-calendar-check"></i> Citas del Día</h2>
+        <div class="d-flex align-items-center gap-3">
+            <form asp-action="Index" method="get" class="d-flex align-items-center gap-2">
+                <label class="form-label mb-0">Fecha:</label>
+                <input asp-for="SelectedDate" type="date" class="form-control" style="width: auto;" />
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-search"></i>
+                </button>
+            </form>
+            <a asp-action="Create" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Nueva Cita
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+                <i class="bi bi-calendar-date"></i>
+                Citas del @Model.SelectedDate.ToString("dddd, dd/MM/yyyy")
+            </h5>
+        </div>
+        <div class="card-body">
+            @if (!Model.Appointments.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x display-1 text-muted"></i>
+                    <h5 class="mt-3 text-muted">No hay citas programadas para esta fecha</h5>
+                    <p class="text-muted">Haga clic en "Nueva Cita" para agendar una.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Hora</th>
+                                <th>Doctor</th>
+                                <th>Paciente</th>
+                                <th>Contacto</th>
+                                <th>Bloque</th>
+                                <th>Estado</th>
+                                <th class="text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var appointment in Model.Appointments)
+                            {
+                                <tr class="@(appointment.Status == "Cancelled" ? "table-secondary" : "")">
+                                    <td>
+                                        <strong class="text-primary">@appointment.TimeDisplay</strong>
+                                    </td>
+                                    <td>@appointment.DoctorName</td>
+                                    <td>@appointment.PatientName</td>
+                                    <td>
+                                        <small>
+                                            <i class="bi bi-envelope"></i> @appointment.PatientEmail<br />
+                                            <i class="bi bi-phone"></i> @appointment.PatientPhone
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">@appointment.TimeBlockDisplay</span>
+                                    </td>
+                                    <td>
+                                        @switch (appointment.Status)
+                                        {
+                                            case "Scheduled":
+                                                <span class="badge bg-primary">Programada</span>
+                                                break;
+                                            case "Confirmed":
+                                                <span class="badge bg-success">Confirmada</span>
+                                                break;
+                                            case "Cancelled":
+                                                <span class="badge bg-danger">Cancelada</span>
+                                                break;
+                                            case "Completed":
+                                                <span class="badge bg-secondary">Completada</span>
+                                                break;
+                                            default:
+                                                <span class="badge bg-warning text-dark">@appointment.StatusDisplay</span>
+                                                break;
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (appointment.CanCancel)
+                                        {
+                                            <form asp-action="Cancel" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="id" value="@appointment.Id" />
+                                                <input type="hidden" name="date" value="@Model.SelectedDate.ToString("yyyy-MM-dd")" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                        onclick="return confirm('¿Está seguro de cancelar esta cita?')">
+                                                    <i class="bi bi-x-circle"></i> Cancelar
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-3 text-muted">
+                    <small>
+                        <strong>Total de citas:</strong> @Model.Appointments.Count |
+                        <strong>Programadas:</strong> @Model.Appointments.Count(a => a.Status == "Scheduled") |
+                        <strong>Canceladas:</strong> @Model.Appointments.Count(a => a.Status == "Cancelled")
+                    </small>
+                </div>
+            }
+        </div>
+    </div>
+</div>

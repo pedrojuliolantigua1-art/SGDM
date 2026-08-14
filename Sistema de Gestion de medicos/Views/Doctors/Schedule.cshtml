@@ -1,0 +1,138 @@
+@model Sistema_de_Gestion_de_medicos.ViewModels.Doctor.DoctorScheduleViewModel
+
+@{
+    ViewData["Title"] = "Horarios del Doctor";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-calendar3"></i> Horarios - Dr. @Model.DoctorName
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        <strong>Especialidad:</strong> @Model.Specialty
+                    </p>
+
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (Model.Schedules.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Día</th>
+                                        <th>Hora Inicio</th>
+                                        <th>Hora Fin</th>
+                                        <th class="text-center">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var schedule in Model.Schedules)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="badge bg-primary">@schedule.DayName</span>
+                                            </td>
+                                            <td>@schedule.StartTime.ToString("hh\\:mm")</td>
+                                            <td>@schedule.EndTime.ToString("hh\\:mm")</td>
+                                            <td class="text-center">
+                                                <form asp-action="RemoveSchedule" method="post" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="scheduleId" value="@schedule.Id" />
+                                                    <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                            onclick="return confirm('¿Está seguro de eliminar este horario?')">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-4">
+                            <i class="bi bi-calendar-x display-4 text-muted"></i>
+                            <p class="mt-2 text-muted">No hay horarios configurados.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Agregar Horario</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="AddSchedule" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="DoctorId" />
+
+                        <div class="mb-3">
+                            <label asp-for="DayOfWeek" class="form-label"></label>
+                            <select asp-for="DayOfWeek" class="form-select">
+                                <option value="0">Domingo</option>
+                                <option value="1">Lunes</option>
+                                <option value="2">Martes</option>
+                                <option value="3">Miércoles</option>
+                                <option value="4">Jueves</option>
+                                <option value="5">Viernes</option>
+                                <option value="6">Sábado</option>
+                            </select>
+                            <span asp-validation-for="DayOfWeek" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="StartTime" class="form-label"></label>
+                            <input asp-for="StartTime" type="time" class="form-control" />
+                            <span asp-validation-for="StartTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="EndTime" class="form-label"></label>
+                            <input asp-for="EndTime" type="time" class="form-control" />
+                            <span asp-validation-for="EndTime" class="text-danger"></span>
+                        </div>
+
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-plus-circle"></i> Agregar Horario
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <a asp-action="Index" class="btn btn-secondary w-100 mt-3">
+                <i class="bi bi-arrow-left"></i> Volver a la Lista
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
